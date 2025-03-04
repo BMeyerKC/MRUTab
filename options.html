@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Most Recently Used Tab Stack Options</title>
+</head>
+<body>
+    <div>
+        <label>
+            Delay Time in Seconds
+            <br />
+            <input type="text" id="delay" />
+        </label>
+    </div>
+    <div>
+        <label>
+            Right to Left
+            <br>
+            <input type="checkbox" id="rtl" />
+        </label>
+    </div>
+    <br />
+    <div id="status"></div>
+    <div>
+        <button id="save">Save</button>
+    </div>
+
+    <br />
+    <table>
+        <thead>
+            <tr>
+                <th>Version</th>
+                <th>Update</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1.5</td>
+                <td>Even simpler code with update to chrome on how it indexes pinned tabs</td>
+            </tr>
+            <tr>
+                <td>1.3</td>
+                <td>Now Supports Right To Left</td>
+            </tr>
+        </tbody>
+    </table>
+    <script src="options.js"></script>
+</body>
+</html>
