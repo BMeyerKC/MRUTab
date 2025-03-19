@@ -2,9 +2,11 @@
 function save_options() {
 	var delay = document.getElementById('delay').value;
 	var rtl = document.getElementById('rtl').checked;
+	var localDebug = document.getElementById('localDebug').checked;
 	chrome.storage.sync.set({
 		delayMoveTime: delay,
-		rightToLeft: rtl
+		rightToLeft: rtl,
+		debugMode: localDebug
 	}, function () {
 		// Update status to let user know options were saved.
 		var status = document.getElementById('status');
@@ -21,10 +23,12 @@ function restore_options() {
 	// Use default value delayMoveTime = '1'
 	chrome.storage.sync.get({
 		delayMoveTime: '1',
-		rightToLeft: false
+		rightToLeft: false,
+		debugMode: false
 	}, function (items) {
 		document.getElementById('delay').value = items.delayMoveTime;
 		document.getElementById('rtl').checked = items.rightToLeft;
+		document.getElementById('localDebug').checked = items.debugMode;
 	});
 }
 document.addEventListener('DOMContentLoaded', restore_options);
