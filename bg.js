@@ -69,7 +69,7 @@ function getActiveTab(currentTab) {
 				reject(new Error("No active tab found"));
 			} else {
 				const activeTab = tabs[0];
-				logMessage("activeTab", activeTab);
+				logMessage("activeTab", summarizeTab(activeTab));
 				resolve(activeTab);
 			}
 		});
@@ -95,6 +95,32 @@ function logMessage(message, obj) {
 			}
 		}
 	});
+}
+
+/**
+ * Return a concise, non-sensitive summary of a Tab object for logging.
+ * Omits full URLs and keeps only hostname to avoid leaking paths/queries.
+ * @param {Object} tab
+ * @returns {Object|null}
+ */
+function summarizeTab(tab) {
+	if (!tab) return null;
+	var host = null;
+	try {
+		var url = tab.url || '';
+		host = url ? (new URL(url)).host : null;
+	} catch (e) {
+		host = null;
+	}
+	return {
+		id: tab.id,
+		index: tab.index,
+		windowId: tab.windowId,
+		groupId: tab.groupId,
+		pinned: tab.pinned,
+		title: tab.title,
+		host: host
+	};
 }
 
 /**
@@ -182,12 +208,12 @@ async function moveTabToGroupSide(activeTab, windowTabs, side) {
 			if (movedTab && movedTab.groupId !== activeTab.groupId) {
 				chrome.tabs.group({ groupId: activeTab.groupId, tabIds: movedTab.id }, function (groupId) {
 					if (chrome.runtime.lastError) {
-						logMessage('Failed to reassign tab to group', chrome.runtime.lastError);
+						logMessage('Failed to reassign tab to group', { tabId: movedTab.id, attemptedGroupId: activeTab.groupId, err: chrome.runtime.lastError });
 					}
 				});
 			}
 		} catch (err) {
-			logMessage('Error moving tab', err);
+			logMessage('Error moving tab', { tabId: activeTab && activeTab.id, windowId: activeTab && activeTab.windowId, targetIndex: finalIndex, err: err });
 		}
 	}
 }
@@ -203,14 +229,14 @@ async function tabTimeout(oldTabInfo, newPosition) {
 	try {
 		const activeTab = await getActiveTab(oldTabInfo);
 		if (!activeTab) {
-			logMessage("no active tab");
+			logMessage("no active tab for activation", { activation: oldTabInfo });
 			return;
 		}
 
 		const windowTabs = await getWindowTabs(oldTabInfo.windowId);
 
 		if (isTabPinned(activeTab)) {
-			logMessage("pinned don't move");
+			logMessage("pinned - skipping move", summarizeTab(activeTab));
 			return;
 		}
 
@@ -220,19 +246,24 @@ async function tabTimeout(oldTabInfo, newPosition) {
 		if (isTabInaGroup(activeTab, windowTabs)) {
 			// Tab is in a group — move it to the left or right edge of its group depending on RTL setting
 			const side = opts.rightToLeft ? 'right' : 'left';
-			logMessage('in group, moving to ' + side + ' of group');
+			logMessage('in group - moving to group edge', { side: side, groupId: activeTab.groupId, tab: summarizeTab(activeTab) });
 			await moveTabToGroupSide(activeTab, windowTabs, side);
 			return;
 		} else {
-			logMessage('not in group');
+			logMessage('not in group', summarizeTab(activeTab));
 		}
 
 		if (activeTab.id === oldTabInfo.tabId) {
 			// don't await here, to preserve original behavior
-			moveTabById(oldTabInfo.tabId, oldTabInfo.windowId, newPosition);
+			if (newPosition === 0) {
+				// move to front but only when not using RTL end behavior
+				moveTabToFrontNotInGroup(activeTab, windowTabs);
+			} else {
+				moveTabById(oldTabInfo.tabId, oldTabInfo.windowId, newPosition);
+			}
 		}
 	} catch (error) {
-		logMessage("Error in tabTimeout", error);
+		logMessage("Error in tabTimeout", { activation: oldTabInfo, err: error });
 	}
 }
 
