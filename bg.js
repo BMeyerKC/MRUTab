@@ -65,8 +65,16 @@ function moveTabToFrontNotInGroup(activeTab, windowTabs) {
 }
 
 function moveTabById(tabId, windowId, index) {
-	// Centralized wrapper for chrome.tabs.move to make future changes easier
-	chrome.tabs.move(tabId, { windowId: windowId, index: index });
+	// Centralized wrapper for chrome.tabs.move that returns a Promise
+	return new Promise((resolve, reject) => {
+		chrome.tabs.move(tabId, { windowId: windowId, index: index }, function (movedTab) {
+			if (chrome.runtime.lastError) {
+				reject(chrome.runtime.lastError);
+			} else {
+				resolve(movedTab);
+			}
+		});
+	});
 }
 
 function getWindowTabs(windowId) {
@@ -81,21 +89,56 @@ function getWindowTabs(windowId) {
 	});
 }
 
-function moveTabToGroupStart(activeTab, windowTabs) {
-	// Find first tab index in the same group
-	let firstIndex = null;
+
+function getStorage(defaults) {
+	return new Promise((resolve) => {
+		chrome.storage.sync.get(defaults, function (items) {
+			resolve(items);
+		});
+	});
+}
+
+async function moveTabToGroupSide(activeTab, windowTabs, side) {
+	// side: 'left' -> move to smallest index in group
+	// side: 'right' -> move to after the largest index in group
+	let targetIndex = null;
 	for (let i = 0; i < windowTabs.length; i++) {
 		const t = windowTabs[i];
 		if (t.groupId === activeTab.groupId) {
-			if (firstIndex === null || t.index < firstIndex) {
-				firstIndex = t.index;
+			if (targetIndex === null) {
+				targetIndex = t.index;
+			} else if (side === 'left' && t.index < targetIndex) {
+				targetIndex = t.index;
+			} else if (side === 'right' && t.index > targetIndex) {
+				targetIndex = t.index;
 			}
 		}
 	}
 
-	if (firstIndex !== null) {
-		// Move active tab to the first index of the group
-		moveTabById(activeTab.id, activeTab.windowId, firstIndex);
+	if (targetIndex !== null) {
+		// If the active tab is already at the requested edge, do nothing.
+		if (side === 'left' && activeTab.index === targetIndex) {
+			return;
+		}
+		if (side === 'right' && activeTab.index === targetIndex) {
+			return;
+		}
+
+		const finalIndex = side === 'left' ? targetIndex : targetIndex + 1;
+		try {
+			const movedTab = await moveTabById(activeTab.id, activeTab.windowId, finalIndex);
+			// If the tab lost its group (moved out), reassign it to the original group
+			if (movedTab && movedTab.groupId !== activeTab.groupId) {
+				chrome.tabs.group({ groupId: activeTab.groupId, tabIds: movedTab.id }, function (groupId) {
+					// optionally log or handle errors via chrome.runtime.lastError
+					if (chrome.runtime.lastError) {
+						logMessage('Failed to reassign tab to group', chrome.runtime.lastError);
+					}
+				});
+			}
+		} catch (err) {
+			logMessage('Error moving tab', err);
+		}
 	}
 }
 
@@ -126,13 +169,17 @@ async function tabTimeout(oldTabInfo, newPosition) {
             return;
         }
 
+		// Read right-to-left option to determine group ordering
+		const opts = await getStorage({ rightToLeft: false });
+
 		if (isTabInaGroup(activeTab, windowTabs)) {
-			// Tab is in a group — move it to the start of its group
-			logMessage("in group, moving to start of group");
-			moveTabToGroupStart(activeTab, windowTabs);
+			// Tab is in a group — move it to the left or right edge of its group depending on RTL setting
+			const side = opts.rightToLeft ? 'right' : 'left';
+			logMessage('in group, moving to ' + side + ' of group');
+			await moveTabToGroupSide(activeTab, windowTabs, side);
 			return;
 		} else {
-			logMessage("not in group");
+			logMessage('not in group');
 		}
 
 		if (activeTab.id === oldTabInfo.tabId) {
