@@ -105,21 +105,16 @@ function logMessage(message, obj) {
  */
 function summarizeTab(tab) {
 	if (!tab) return null;
-	var host = null;
-	try {
-		var url = tab.url || '';
-		host = url ? (new URL(url)).host : null;
-	} catch (e) {
-		host = null;
-	}
+	// Avoid accessing `tab.url` or other potentially sensitive fields
+	// when `tabs` permission is not requested. Keep only non-sensitive
+	// metadata useful for debugging.
 	return {
 		id: tab.id,
 		index: tab.index,
 		windowId: tab.windowId,
 		groupId: tab.groupId,
 		pinned: tab.pinned,
-		title: tab.title,
-		host: host
+		title: tab.title
 	};
 }
 
@@ -268,25 +263,28 @@ async function tabTimeout(oldTabInfo, newPosition) {
 }
 
 // ===== Event listeners =====
-chrome.commands.onCommand.addListener(function (command) {
-	if (command === 'next') {
-		blocked = true;
+// Register the commands listener only when the Commands API is available
+if (typeof chrome.commands !== 'undefined' && chrome.commands && chrome.commands.onCommand && typeof chrome.commands.onCommand.addListener === 'function') {
+	chrome.commands.onCommand.addListener(function (command) {
+		if (command === 'next') {
+			blocked = true;
 
-		chrome.tabs.query({ windowId: chrome.windows.WINDOW_ID_CURRENT }, function (windowTabs) {
-			var l = windowTabs.length;
-			var tab;
-			for (var index = 0; index < windowTabs.length; index++) {
-				var t = windowTabs[index];
-				if (t.active == true) {
-					tab = t;
+			chrome.tabs.query({ windowId: chrome.windows.WINDOW_ID_CURRENT }, function (windowTabs) {
+				var l = windowTabs.length;
+				var tab;
+				for (var index = 0; index < windowTabs.length; index++) {
+					var t = windowTabs[index];
+					if (t.active == true) {
+						tab = t;
+					}
 				}
-			}
 
-			var id = tab.index + 1 >= windowTabs.length ? windowTabs[0].id : windowTabs[tab.index + 1].id;
-			chrome.tabs.update(id, { active: true });
-		});
-	}
-});
+				var id = tab.index + 1 >= windowTabs.length ? windowTabs[0].id : windowTabs[tab.index + 1].id;
+				chrome.tabs.update(id, { active: true });
+			});
+		}
+	});
+}
 
 chrome.tabs.onActivated.addListener(function (activeInfo) {
 	// Only move the tab if the user keeps that tab visible for some period of time
