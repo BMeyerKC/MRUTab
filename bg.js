@@ -3,6 +3,11 @@ var currentTab;
 var blocked = false;
 
 // ===== Storage Helpers =====
+/**
+ * Read values from chrome.storage.sync.
+ * @param {Object} defaults - Default key/value pairs to request.
+ * @returns {Promise<Object>} Resolves with the stored items (merged with defaults).
+ */
 function getStorage(defaults) {
 	return new Promise((resolve) => {
 		chrome.storage.sync.get(defaults, function (items) {
@@ -12,6 +17,13 @@ function getStorage(defaults) {
 }
 
 // ===== Chrome API Wrappers =====
+/**
+ * Move a tab to a specific index within a window.
+ * @param {number} tabId - ID of the tab to move.
+ * @param {number} windowId - ID of the target window.
+ * @param {number} index - Target index within the window.
+ * @returns {Promise<Object>} Resolves with the moved Tab object or rejects with an error.
+ */
 function moveTabById(tabId, windowId, index) {
 	// Centralized wrapper for chrome.tabs.move that returns a Promise
 	return new Promise((resolve, reject) => {
@@ -25,6 +37,11 @@ function moveTabById(tabId, windowId, index) {
 	});
 }
 
+/**
+ * Query all tabs for a given window.
+ * @param {number} windowId
+ * @returns {Promise<Array>} Resolves with an array of Tab objects (may be empty).
+ */
 function getWindowTabs(windowId) {
 	return new Promise((resolve, reject) => {
 		chrome.tabs.query({ windowId: windowId }, function (tabs) {
@@ -38,6 +55,11 @@ function getWindowTabs(windowId) {
 }
 
 
+/**
+ * Get the currently active tab for a window represented by `currentTab` info.
+ * @param {{windowId:number}} currentTab - The onActivated info object.
+ * @returns {Promise<Object>} Resolves with the active Tab object or rejects on error.
+ */
 function getActiveTab(currentTab) {
 	return new Promise((resolve, reject) => {
 		chrome.tabs.query({ "active": true, "windowId": currentTab.windowId }, function (tabs) {
@@ -55,6 +77,12 @@ function getActiveTab(currentTab) {
 }
 
 // ===== Helpers =====
+/**
+ * Log a debug message to the console when debugMode is enabled in storage.
+ * @param {string} message
+ * @param {any} [obj]
+ * @returns {void}
+ */
 function logMessage(message, obj) {
 	chrome.storage.sync.get({
 		debugMode: false
@@ -69,10 +97,21 @@ function logMessage(message, obj) {
 	});
 }
 
+/**
+ * Check whether a tab is pinned.
+ * @param {Object} activeTab
+ * @returns {boolean}
+ */
 function isTabPinned(activeTab) {
 	return activeTab.pinned == true;
 }
 
+/**
+ * Return true if another tab in the same window belongs to the same group.
+ * @param {Object} activeTab
+ * @param {Array} windowTabs
+ * @returns {boolean}
+ */
 function isTabInaGroup(activeTab, windowTabs) {
 	if (activeTab.groupId != -1) {
 		for (var index = 0; index < windowTabs.length; index++) {
@@ -85,6 +124,11 @@ function isTabInaGroup(activeTab, windowTabs) {
 	return false;
 }
 
+/**
+ * Move the active tab to the front of the window if it is not in a group.
+ * @param {Object} activeTab
+ * @param {Array} windowTabs
+ */
 function moveTabToFrontNotInGroup(activeTab, windowTabs) {
 	if (activeTab.groupId == -1) {
 		for (var index = 0; index < windowTabs.length; index++) {
@@ -99,6 +143,12 @@ function moveTabToFrontNotInGroup(activeTab, windowTabs) {
 }
 
 // Move a tab to the left or right edge of its group
+/**
+ * Move the active tab to the left or right edge of its group.
+ * @param {Object} activeTab
+ * @param {Array} windowTabs
+ * @param {'left'|'right'} side
+ */
 async function moveTabToGroupSide(activeTab, windowTabs, side) {
 	// side: 'left' -> move to smallest index in group
 	// side: 'right' -> move to after the largest index in group
@@ -143,6 +193,12 @@ async function moveTabToGroupSide(activeTab, windowTabs, side) {
 }
 
 // ===== Main logic =====
+/**
+ * Called after a short delay when a tab becomes active. Decides whether
+ * to move the tab based on pinned state, grouping, and user options.
+ * @param {Object} oldTabInfo - The tabs.onActivated info object.
+ * @param {number} newPosition - index to move to when not grouped (usually 0 or -1)
+ */
 async function tabTimeout(oldTabInfo, newPosition) {
 	try {
 		const activeTab = await getActiveTab(oldTabInfo);
