@@ -13,13 +13,5 @@
     },
     "permissions": [
         "storage"
-    ],
-    "commands": {
-        "next": {
-            "suggested_key": {
-                "default": "Ctrl+Space"
-            },
-            "description": "Same as Ctrl+Tab but won't sort until you let go."
-        }
-    }
+    ]
 }

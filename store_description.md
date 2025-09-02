@@ -4,13 +4,13 @@
 MRU Tab Stack — Lightweight tab manager that auto-moves your most recently used tab to the front or back; supports pinned tabs, tab groups, and keyboard shortcuts.
 
 ## Full store description
-MRU Tab Stack helps you stay focused by keeping your most recently used tab within easy reach. When you switch to a tab, MRU Tab Stack can automatically move it to the front (or back) of the tab strip so you spend less time hunting for it. It respects pinned tabs and Chrome tab groups, and works with the keyboard shortcut (Ctrl+Space by default).
+MRU Tab Stack helps you stay focused by keeping your most recently used tab within easy reach. When you switch to a tab, MRU Tab Stack can automatically move it to the front (or back) of the tab strip so you spend less time hunting for it. It respects pinned tabs and Chrome tab groups, and works with the keyboard shortcut (Ctrl+Tab by default).
 
 ### Features
 - Auto-move the most recently used tab to the front or end of the tab strip
 - Works with pinned tabs and Chrome tab groups
 - Customizable delay and ordering in Options
-- Keyboard shortcut support (default: Ctrl+Space)
+- Keyboard shortcut support (default: Ctrl+Tab)
 - Lightweight and privacy-first — no external servers
 
 ### How it works
@@ -47,7 +47,3 @@ Changes:
 Notes:
 - No new permissions were requested.
 - No user-facing behavior changes were made; debug output is more useful for troubleshooting.
-
----
-
-If you want this file committed and pushed, I can do that and add the PR draft using this PR body. Which branch should I commit it to? (current: `feature/SupportGroups` suggested)
