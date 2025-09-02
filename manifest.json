@@ -3,7 +3,7 @@
     "name": "Most Recent Used Tab Stack",
     "version": "2.0.2",
 
-    "description": "MRU Tab Stack — Lightweight tab manager that auto-moves your most recently used tab to the front or back; supports pinned tabs, tab groups, and keyboard shortcuts.",
+    "description": "MRU Tab Stack — auto-move your most recently used tab to the front or back; works with pinned tabs and tab groups.",
     "short_name": "MRU Tab Stack",
     "background": {
         "service_worker": "bg.js"
