@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Most Recent Used Tab Stack",
-    "version": "1.7",
+    "version": "2.0.0",
 
     "description": "Moves your most recent tab to the front (or back) of your stack. View options for update log. Works with pinned tabs.",
     "short_name": "MRU Tab Stack",
