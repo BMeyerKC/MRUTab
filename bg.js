@@ -57,10 +57,45 @@ function moveTabToFrontNotInGroup(activeTab, windowTabs) {
 		for (var index = 0; index < windowTabs.length; index++) {
 			var t = windowTabs[index];
 			if(t.id != activeTab.id){
-				chrome.tabs.move(activeTab.id, { windowId: activeTab.windowId, index: t.index });
+				moveTabById(activeTab.id, activeTab.windowId, t.index);
 				return;
 			}
 		}
+	}
+}
+
+function moveTabById(tabId, windowId, index) {
+	// Centralized wrapper for chrome.tabs.move to make future changes easier
+	chrome.tabs.move(tabId, { windowId: windowId, index: index });
+}
+
+function getWindowTabs(windowId) {
+	return new Promise((resolve, reject) => {
+		chrome.tabs.query({ windowId: windowId }, function (tabs) {
+			if (chrome.runtime.lastError) {
+				reject(chrome.runtime.lastError);
+			} else {
+				resolve(tabs || []);
+			}
+		});
+	});
+}
+
+function moveTabToGroupStart(activeTab, windowTabs) {
+	// Find first tab index in the same group
+	let firstIndex = null;
+	for (let i = 0; i < windowTabs.length; i++) {
+		const t = windowTabs[i];
+		if (t.groupId === activeTab.groupId) {
+			if (firstIndex === null || t.index < firstIndex) {
+				firstIndex = t.index;
+			}
+		}
+	}
+
+	if (firstIndex !== null) {
+		// Move active tab to the first index of the group
+		moveTabById(activeTab.id, activeTab.windowId, firstIndex);
 	}
 }
 
@@ -84,21 +119,25 @@ async function tabTimeout(oldTabInfo, newPosition) {
             return;
         }
 
+		const windowTabs = await getWindowTabs(oldTabInfo.windowId);
+
         if (isTabPinned(activeTab)) {
             logMessage("pinned don't move");
             return;
         }
 
-        if (isTabInaGroup(activeTab)) {
-            logMessage("in group don't move");
-            return;
-        } else {
-            logMessage("not in group");
-        }
+		if (isTabInaGroup(activeTab, windowTabs)) {
+			// Tab is in a group — move it to the start of its group
+			logMessage("in group, moving to start of group");
+			moveTabToGroupStart(activeTab, windowTabs);
+			return;
+		} else {
+			logMessage("not in group");
+		}
 
-        if (activeTab.id === oldTabInfo.tabId) {
-            chrome.tabs.move(oldTabInfo.tabId, { windowId: oldTabInfo.windowId, index: newPosition });
-        }
+		if (activeTab.id === oldTabInfo.tabId) {
+			moveTabById(oldTabInfo.tabId, oldTabInfo.windowId, newPosition);
+		}
     } catch (error) {
         logMessage("Error in tabTimeout", error);
     }
