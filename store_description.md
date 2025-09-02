@@ -17,7 +17,9 @@ MRU Tab Stack helps you stay focused by keeping your most recently used tab with
 Install, open Options to set the move delay and right-to-left behavior, then switch tabs as usual. The extension will move the active tab after the configured delay.
 
 ### Privacy
-No browsing data is uploaded. Debug logs (optional) record only limited, non-sensitive tab summaries (hostnames only) and are stored locally in the extension console when enabled.
+No browsing data is uploaded. Debug logs (optional) record only limited, non-sensitive tab summaries and are stored locally in the extension console when enabled.
+
+Permissions note: This extension intentionally requests only the `storage` permission in the manifest. It does not request the `tabs` permission or host permissions. The extension uses non-sensitive tab metadata (id, index, groupId, title) and Chrome's tab activation events to perform moves without needing extra permissions.
 
 ### Support & source
 For support, issues, or to view the source, visit the project on GitHub (link in the options/about page).

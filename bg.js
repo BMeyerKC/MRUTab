@@ -263,28 +263,10 @@ async function tabTimeout(oldTabInfo, newPosition) {
 }
 
 // ===== Event listeners =====
-// Register the commands listener only when the Commands API is available
-if (typeof chrome.commands !== 'undefined' && chrome.commands && chrome.commands.onCommand && typeof chrome.commands.onCommand.addListener === 'function') {
-	chrome.commands.onCommand.addListener(function (command) {
-		if (command === 'next') {
-			blocked = true;
-
-			chrome.tabs.query({ windowId: chrome.windows.WINDOW_ID_CURRENT }, function (windowTabs) {
-				var l = windowTabs.length;
-				var tab;
-				for (var index = 0; index < windowTabs.length; index++) {
-					var t = windowTabs[index];
-					if (t.active == true) {
-						tab = t;
-					}
-				}
-
-				var id = tab.index + 1 >= windowTabs.length ? windowTabs[0].id : windowTabs[tab.index + 1].id;
-				chrome.tabs.update(id, { active: true });
-			});
-		}
-	});
-}
+// No explicit commands listener: keyboard shortcuts are intentionally
+// omitted from the manifest to keep permissions minimal. The extension
+// still responds to tab activations (including Ctrl+Tab) via
+// chrome.tabs.onActivated and will auto-move tabs as configured.
 
 chrome.tabs.onActivated.addListener(function (activeInfo) {
 	// Only move the tab if the user keeps that tab visible for some period of time
