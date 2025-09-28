@@ -151,16 +151,20 @@ function isTabInaGroup(activeTab, windowTabs) {
  * @param {Array} windowTabs
  */
 function moveTabToFrontNotInGroup(activeTab, windowTabs) {
-	if (activeTab.groupId == -1) {
-		for (var index = 0; index < windowTabs.length; index++) {
-			var t = windowTabs[index];
-			if (t.id != activeTab.id) {
-				// don't await here, keep original behavior
-				moveTabById(activeTab.id, activeTab.windowId, t.index);
-				return;
-			}
-		}
-	}
+       if (activeTab.groupId == -1) {
+	       // If already at index 0, do nothing
+	       if (activeTab.index === 0) {
+		       return;
+	       }
+	       for (var index = 0; index < windowTabs.length; index++) {
+		       var t = windowTabs[index];
+		       if (t.id != activeTab.id) {
+			       // don't await here, keep original behavior
+			       moveTabById(activeTab.id, activeTab.windowId, t.index);
+			       return;
+		       }
+	       }
+       }
 }
 
 // Move a tab to the left or right edge of its group
