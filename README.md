@@ -19,6 +19,7 @@ This extension intentionally requests only the `storage` permission. It uses Chr
 
 ## Changelog
 
+- **2.0.3** — Fix: Prevent the active tab from being moved to the second position when it is already first (e.g., after closing a tab).
 - **2.0.2** — Removed extension-registered commands to keep permissions minimal; improved debug logging and non-sensitive tab summaries.
 - **2.0.1** — Improved debug logging (summarizeTab and structured debug messages).
 - **2.0.0** — Added support for tab groups and left/right ordering.

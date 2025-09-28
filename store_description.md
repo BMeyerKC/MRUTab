@@ -33,7 +33,10 @@ tab manager, MRU, most recent tab, tab ordering, productivity, keyboard shortcut
 - Extension icon (128×128)
 - Optional short demo GIF (keep file size small)
 
-## Changelog entry (for v2.0.1)
+## Changelog entries
+**v2.0.3** — Bug fix
+- Prevent moving the active tab to the second position when it is already first (notably after closing a tab).
+
 **v2.0.1** — Internal improvements
 - Improved debug logging: added summarized tab output and structured debug messages in `bg.js` (debug messages gated by existing `debugMode`).
 - No behavior changes for end users.

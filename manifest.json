@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Most Recent Used Tab Stack",
-    "version": "2.0.2",
+    "version": "2.0.3",
 
     "description": "MRU Tab Stack — auto-move your most recently used tab to the front or back; works with pinned tabs and tab groups.",
     "short_name": "MRU Tab Stack",
