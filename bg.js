@@ -243,6 +243,14 @@ async function tabTimeout(oldTabInfo, newPosition) {
 		const opts = await getStorage({ rightToLeft: false });
 
 		if (isTabInaGroup(activeTab, windowTabs)) {
+			if (activeTab.id !== oldTabInfo.tabId) {
+				logMessage('grouped tab no longer active - skipping move', {
+					expectedTabId: oldTabInfo.tabId,
+					activeTab: summarizeTab(activeTab)
+				});
+				return;
+			}
+
 			// Tab is in a group — move it to the left or right edge of its group depending on RTL setting
 			const side = opts.rightToLeft ? 'right' : 'left';
 			logMessage('in group - moving to group edge', { side: side, groupId: activeTab.groupId, tab: summarizeTab(activeTab) });

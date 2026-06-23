@@ -19,6 +19,7 @@ This extension intentionally requests only the `storage` permission. It uses Chr
 
 ## Changelog
 
+- **2.0.4** — Fix: Grouped tabs now honor the configured delay and are not moved early while rapidly switching within a tab group.
 - **2.0.3** — Fix: Prevent the active tab from being moved to the second position when it is already first (e.g., after closing a tab).
 - **2.0.2** — Removed extension-registered commands to keep permissions minimal; improved debug logging and non-sensitive tab summaries.
 - **2.0.1** — Improved debug logging (summarizeTab and structured debug messages).
@@ -32,4 +33,3 @@ MRU Tab Stack — Lightweight tab manager that auto-moves your most recently use
 - Options / in-extension changelog: `options.html`
 - Store listing copy: `store_description.md`
 - Source & issues: https://github.com/BMeyerKC/MRUTab
-
