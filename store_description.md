@@ -34,6 +34,9 @@ tab manager, MRU, most recent tab, tab ordering, productivity, keyboard shortcut
 - Optional short demo GIF (keep file size small)
 
 ## Changelog entries
+**v2.0.4** — Bug fix
+- Respect the configured delay for grouped tabs so quick switching within a tab group does not trigger an early move.
+
 **v2.0.3** — Bug fix
 - Prevent moving the active tab to the second position when it is already first (notably after closing a tab).
 
