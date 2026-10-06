@@ -4,11 +4,12 @@
 MRU Tab Stack — Lightweight tab manager that auto-moves your most recently used tab to the front or back; supports pinned tabs, tab groups, and keyboard shortcuts.
 
 ## Full store description
-MRU Tab Stack helps you stay focused by keeping your most recently used tab within easy reach. When you switch to a tab, MRU Tab Stack can automatically move it to the front (or back) of the tab strip so you spend less time hunting for it. It respects pinned tabs and Chrome tab groups, and works with the keyboard shortcut (Ctrl+Tab by default).
+MRU Tab Stack helps you stay focused by keeping your most recently used tab within easy reach. When you switch to a tab, MRU Tab Stack can automatically move it to the front (or back) of the tab strip so you spend less time hunting for it. It respects pinned tabs and Chrome tab groups, can move Chrome's Split View as a single unit, and works with the keyboard shortcut (Ctrl+Tab by default).
 
 ### Features
 - Auto-move the most recently used tab to the front or end of the tab strip
 - Works with pinned tabs and Chrome tab groups
+- Optionally moves Chrome's Split View as a single unit, so its two tabs don't swap places (on by default)
 - Customizable delay and ordering in Options
 - Keyboard shortcut support (default: Ctrl+Tab)
 - Lightweight and privacy-first — no external servers
@@ -19,7 +20,7 @@ Install, open Options to set the move delay and right-to-left behavior, then swi
 ### Privacy
 No browsing data is uploaded. Debug logs (optional) record only limited, non-sensitive tab summaries and are stored locally in the extension console when enabled.
 
-Permissions note: This extension intentionally requests only the `storage` permission in the manifest. It does not request the `tabs` permission or host permissions. The extension uses non-sensitive tab metadata (id, index, groupId, title) and Chrome's tab activation events to perform moves without needing extra permissions.
+Permissions note: This extension intentionally requests only the `storage` permission in the manifest. It does not request the `tabs` permission or host permissions. The extension uses non-sensitive tab metadata (id, index, groupId, splitViewId, title) and Chrome's tab activation events to perform moves without needing extra permissions.
 
 ### Support & source
 For support, issues, or to view the source, visit the project on GitHub (link in the options/about page).
@@ -34,6 +35,9 @@ tab manager, MRU, most recent tab, tab ordering, productivity, keyboard shortcut
 - Optional short demo GIF (keep file size small)
 
 ## Changelog entries
+**v2.0.4** — New option
+- "Don't reorder tabs within Split View" (on by default): a Split View (Chrome 140+) moves as a single unit, so its two tabs no longer swap places as focus moves between them. Turn it off in Options to move each split tab on its own.
+
 **v2.0.3** — Bug fix
 - Prevent moving the active tab to the second position when it is already first (notably after closing a tab).
 

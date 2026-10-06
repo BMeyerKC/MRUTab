@@ -38,6 +38,25 @@ function moveTabById(tabId, windowId, index) {
 }
 
 /**
+ * Move a tab group to a specific index within a window (requires "tabGroups" permission).
+ * @param {number} groupId - ID of the group to move.
+ * @param {number} windowId - ID of the target window.
+ * @param {number} index - Target index of the group's first tab.
+ * @returns {Promise<Object>} Resolves with the moved TabGroup object or rejects with an error.
+ */
+function moveGroupById(groupId, windowId, index) {
+	return new Promise((resolve, reject) => {
+		chrome.tabGroups.move(groupId, { windowId: windowId, index: index }, function (movedGroup) {
+			if (chrome.runtime.lastError) {
+				reject(chrome.runtime.lastError);
+			} else {
+				resolve(movedGroup);
+			}
+		});
+	});
+}
+
+/**
  * Query all tabs for a given window.
  * @param {number} windowId
  * @returns {Promise<Array>} Resolves with an array of Tab objects (may be empty).
@@ -114,6 +133,7 @@ function summarizeTab(tab) {
 		windowId: tab.windowId,
 		groupId: tab.groupId,
 		pinned: tab.pinned,
+		splitViewId: tab.splitViewId,
 		title: tab.title
 	};
 }
@@ -125,6 +145,17 @@ function summarizeTab(tab) {
  */
 function isTabPinned(activeTab) {
 	return activeTab.pinned == true;
+}
+
+/**
+ * Check whether a tab is part of a Split View (Chrome 140+).
+ * On older Chrome versions `splitViewId` is undefined, so this returns false.
+ * @param {Object} activeTab
+ * @returns {boolean}
+ */
+function isTabInSplitView(activeTab) {
+	const none = (chrome.tabs.SPLIT_VIEW_ID_NONE ?? -1);
+	return activeTab.splitViewId !== undefined && activeTab.splitViewId !== none;
 }
 
 /**
@@ -217,6 +248,117 @@ async function moveTabToGroupSide(activeTab, windowTabs, side) {
 	}
 }
 
+/**
+ * Collect tabs (sorted by index) into the units that must move together:
+ * each tab group as a whole, or a single ungrouped tab.
+ * @param {Array} tabs
+ * @returns {Array<{groupId:number, tabs:Array}>}
+ */
+function collectMoveUnits(tabs) {
+	const units = [];
+	for (const t of tabs) {
+		const prev = units[units.length - 1];
+		if (t.groupId != -1 && prev && prev.groupId === t.groupId) {
+			prev.tabs.push(t);
+		} else {
+			units.push({ groupId: t.groupId, tabs: [t] });
+		}
+	}
+	return units;
+}
+
+/**
+ * Move a whole Split View to the left or right edge of the window (or of its
+ * group, if grouped), keeping the split's tabs in their current left/right order.
+ *
+ * Chrome removes a Split View when one of its tabs is moved away from the other,
+ * so the split tabs themselves are never moved. Instead, the tabs between the
+ * split and the target edge are moved to the other side of the split.
+ * @param {Object} activeTab
+ * @param {Array} windowTabs
+ * @param {'left'|'right'} side
+ */
+async function moveSplitViewToSide(activeTab, windowTabs, side) {
+	const splitTabs = windowTabs
+		.filter(t => t.splitViewId === activeTab.splitViewId)
+		.sort((a, b) => a.index - b.index);
+	const splitIds = splitTabs.map(t => t.id);
+	const first = splitTabs[0].index;
+	const last = splitTabs[splitTabs.length - 1].index;
+
+	// Tabs to move past: the rest of the split's group, or all other unpinned tabs
+	const grouped = activeTab.groupId != -1;
+	const between = windowTabs
+		.filter(t => !splitIds.includes(t.id) && !t.pinned
+			&& (!grouped || t.groupId === activeTab.groupId)
+			&& (side === 'left' ? t.index < first : t.index > last))
+		.sort((a, b) => a.index - b.index);
+
+	// Within a group every tab moves on its own; otherwise tab groups move as a whole
+	let units = grouped
+		? between.map(t => ({ groupId: -1, tabs: [t] }))
+		: collectMoveUnits(between);
+
+	// Moving a tab group needs the "tabGroups" permission. Without it, the split
+	// view only moves as far as the nearest tab group.
+	if (!chrome.tabGroups) {
+		if (side === 'left') {
+			units = units.slice(units.findLastIndex(u => u.groupId != -1) + 1);
+		} else {
+			const firstGroup = units.findIndex(u => u.groupId != -1);
+			if (firstGroup !== -1) {
+				units = units.slice(0, firstGroup);
+			}
+		}
+	}
+
+	// If the split view is already at the requested edge, do nothing.
+	if (units.length === 0) {
+		return;
+	}
+
+	try {
+		let moved = 0;
+		for (const unit of units) {
+			// Left: each unit lands just after the split (following the units already moved).
+			// Right: each unit lands just before the split (following the units already moved).
+			const index = side === 'left' ? last - unit.tabs.length + 1 : first + moved;
+			if (unit.groupId != -1) {
+				await moveGroupById(unit.groupId, activeTab.windowId, index);
+			} else {
+				const tab = unit.tabs[0];
+				const movedTab = await moveTabById(tab.id, activeTab.windowId, index);
+				keepTabGroup(movedTab, tab.groupId);
+			}
+			moved += unit.tabs.length;
+		}
+	} catch (err) {
+		logMessage('Error moving split view', { splitViewId: activeTab.splitViewId, windowId: activeTab.windowId, side: side, err: err });
+	}
+}
+
+/**
+ * Restore a moved tab's group membership if the move changed it (a tab can
+ * join or leave a group when it lands at a group's edge).
+ * @param {Object} movedTab
+ * @param {number} groupId - The group the tab belonged to before the move (-1 for none).
+ */
+function keepTabGroup(movedTab, groupId) {
+	if (!movedTab || movedTab.groupId === groupId) {
+		return;
+	}
+	const done = function () {
+		if (chrome.runtime.lastError) {
+			logMessage('Failed to restore tab group', { tabId: movedTab.id, groupId: groupId, err: chrome.runtime.lastError });
+		}
+	};
+	if (groupId == -1) {
+		chrome.tabs.ungroup(movedTab.id, done);
+	} else {
+		chrome.tabs.group({ groupId: groupId, tabIds: movedTab.id }, done);
+	}
+}
+
 // ===== Main logic =====
 /**
  * Called after a short delay when a tab becomes active. Decides whether
@@ -239,8 +381,16 @@ async function tabTimeout(oldTabInfo, newPosition) {
 			return;
 		}
 
-		// Read right-to-left option to determine group ordering
-		const opts = await getStorage({ rightToLeft: false });
+		// Read right-to-left option to determine group ordering, and split view option
+		const opts = await getStorage({ rightToLeft: false, disableInSplitView: true });
+
+		if (opts.disableInSplitView && isTabInSplitView(activeTab)) {
+			// Move the split view as a unit so its tabs don't swap places
+			const side = opts.rightToLeft ? 'right' : 'left';
+			logMessage('split view - moving split view as a unit', { side: side, splitViewId: activeTab.splitViewId, tab: summarizeTab(activeTab) });
+			await moveSplitViewToSide(activeTab, windowTabs, side);
+			return;
+		}
 
 		if (isTabInaGroup(activeTab, windowTabs)) {
 			// Tab is in a group — move it to the left or right edge of its group depending on RTL setting

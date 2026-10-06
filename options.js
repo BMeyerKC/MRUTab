@@ -3,6 +3,7 @@ function save_options() {
 	var delayInput = document.getElementById('delay');
 	var delay = Number(delayInput.value);
 	var rtl = document.getElementById('rtl').checked;
+	var disableSplitView = document.getElementById('disableSplitView').checked;
 	var localDebug = document.getElementById('localDebug').checked;
 	var saveBtn = document.getElementById('save');
 	var status = document.getElementById('status');
@@ -21,6 +22,7 @@ function save_options() {
 	chrome.storage.sync.set({
 		delayMoveTime: String(delay),
 		rightToLeft: rtl,
+		disableInSplitView: disableSplitView,
 		debugMode: localDebug
 	}, function () {
 		status.style.color = '#2a7a2a';
@@ -39,10 +41,12 @@ function restore_options() {
 	chrome.storage.sync.get({
 		delayMoveTime: '1',
 		rightToLeft: false,
+		disableInSplitView: true,
 		debugMode: false
 	}, function (items) {
 		document.getElementById('delay').value = Number(items.delayMoveTime);
 		document.getElementById('rtl').checked = items.rightToLeft;
+		document.getElementById('disableSplitView').checked = items.disableInSplitView;
 		document.getElementById('localDebug').checked = items.debugMode;
 	});
 }
